@@ -1,7 +1,7 @@
 # Metanet Gallery OSS
 
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![GitHub issues](https://img.shields.io/github/issues/dnh3/metanet-gallery-oss)](https://github.com/dnh3/metanet-gallery-oss/issues)
+[![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![GitHub issues](https://img.shields.io/github/issues/dnh33/metanet-gallery-oss)](https://github.com/dnh33/metanet-gallery-oss/issues)
 
 **A self-hostable, open-source 3D gallery designed for Bitcoiners to showcase and explore Ordinal art and inscriptions.**
 
@@ -66,7 +66,7 @@ To get a local copy up and running, follow these simple steps.
 
 1.  **Clone the repository:**
     ```sh
-    git clone https://github.com/dnh3/metanet-gallery-oss.git
+    git clone https://github.com/dnh33/metanet-gallery-oss.git
     cd metanet-gallery-oss
     ```
 
@@ -119,4 +119,18 @@ If you have a suggestion that would make this better, please fork the repo and c
 
 ## License
 
-Distributed under the Apache License 2.0. See `LICENSE` for more information.
+Distributed under the GNU General Public License v3.0. See `LICENSE` for more information.
+
+### Why GPL-3.0 for Metanet Gallery?
+
+**GPL-3.0 ensures the Bitcoin ecosystem remains free and decentralized:**
+
+- ✅ **Copyleft Protection** - Any derivative works must also be GPL-licensed
+- ✅ **Community Freedom** - Prevents proprietary forks from undermining the ecosystem
+- ✅ **Source Code Freedom** - Users can always access, modify, and share the source code
+- ✅ **Patent Protection** - Strong protections against patent claims
+- ✅ **Future-Proof** - GPL-3.0 includes modern provisions for software patents and DRM
+
+**This aligns perfectly with our mission** to build foundational infrastructure for Bitcoin Ordinals that cannot be captured by proprietary interests. The gallery platform itself will always remain free and open, ensuring that the Bitcoin art community maintains sovereignty over their digital spaces.
+
+**For Contributors:** Your contributions will help build a truly decentralized gallery ecosystem where no single entity can monopolize the technology.

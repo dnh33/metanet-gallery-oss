@@ -50,27 +50,64 @@ const { title, isLoggedIn } = Astro.props;
 </style>
 <script>
     import {supabase} from '../utils/supabaseBrowser'
-    import {accessTokenName, refreshTokenName} from '../utils/config'
+    import {accessTokenName, refreshTokenName, isSupabaseConfigured} from '../utils/config'
 
     const isLoggedIn = document.body.hasAttribute('data-logged-in');
 
-    supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
-        // delete cookies on sign out
-        const expires = new Date(0).toUTCString()
-        document.cookie = `${accessTokenName}=; path=/; expires=${expires}; SameSite=Lax; secure`
-        document.cookie = `${refreshTokenName}=; path=/; expires=${expires}; SameSite=Lax; secure`
-        if (isLoggedIn) {
-            location.reload()
+    // Handle magic link redirect - extract tokens from URL hash
+    function handleAuthRedirect() {
+        const hash = window.location.hash;
+        if (hash && hash.includes('access_token')) {
+            // Extract tokens from URL hash
+            const hashParams = new URLSearchParams(hash.substring(1));
+            const accessToken = hashParams.get('access_token');
+            const refreshToken = hashParams.get('refresh_token');
+
+            if (accessToken && refreshToken) {
+                // Set tokens as cookies
+                const maxAge = 100 * 365 * 24 * 60 * 60; // 100 years, never expires
+                document.cookie = `${accessTokenName}=${accessToken}; path=/; max-age=${maxAge}; SameSite=Lax; secure`;
+                document.cookie = `${refreshTokenName}=${refreshToken}; path=/; max-age=${maxAge}; SameSite=Lax; secure`;
+
+                // Clean up URL by removing hash
+                const cleanUrl = window.location.pathname + window.location.search;
+                window.history.replaceState(null, '', cleanUrl);
+
+                // Redirect to home page or reload to trigger authentication
+                if (window.location.pathname === '/login') {
+                    window.location.href = '/';
+                } else {
+                    window.location.reload();
+                }
+                return true;
+            }
         }
-      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        const maxAge = 100 * 365 * 24 * 60 * 60 // 100 years, never expires
-        document.cookie = `${accessTokenName}=${session!.access_token}; path=/; max-age=${maxAge}; SameSite=Lax; secure`
-        document.cookie = `${refreshTokenName}=${session!.refresh_token}; path=/; max-age=${maxAge}; SameSite=Lax; secure`
-        if (!isLoggedIn) {
-            location.reload()
-        }
-      }
-    })
+        return false;
+    }
+
+    // Check for auth redirect first
+    const wasRedirected = handleAuthRedirect();
+
+    // Only setup auth listeners if Supabase is configured and we didn't just handle a redirect
+    if (supabase && isSupabaseConfigured && !wasRedirected) {
+        supabase.auth.onAuthStateChange((event, session) => {
+          if (event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
+            // delete cookies on sign out
+            const expires = new Date(0).toUTCString()
+            document.cookie = `${accessTokenName}=; path=/; expires=${expires}; SameSite=Lax; secure`
+            document.cookie = `${refreshTokenName}=; path=/; expires=${expires}; SameSite=Lax; secure`
+            if (isLoggedIn) {
+                location.reload()
+            }
+          } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            const maxAge = 100 * 365 * 24 * 60 * 60 // 100 years, never expires
+            document.cookie = `${accessTokenName}=${session!.access_token}; path=/; max-age=${maxAge}; SameSite=Lax; secure`
+            document.cookie = `${refreshTokenName}=${session!.refresh_token}; path=/; max-age=${maxAge}; SameSite=Lax; secure`
+            if (!isLoggedIn) {
+                location.reload()
+            }
+          }
+        })
+    }
 
 </script>

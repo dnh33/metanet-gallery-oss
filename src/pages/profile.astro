@@ -24,7 +24,12 @@ if (!userData) {
     <form>
         <input type='hidden' id='id' name='id' value={ userData.id } >
         <input type='hidden' id='avatar_url' name='avatar_url' value={ userData.avatar_url } >
-        <img id='avatar-image' />
+        <div id="avatar-container">
+            <img id='avatar-image' alt="Your avatar" />
+            <div id="avatar-status" style="display: none; color: #666; font-size: 0.9em; margin-top: 5px;">
+                Loading avatar...
+            </div>
+        </div>
 
         <div>
             <input
@@ -63,7 +68,12 @@ input{
     flex: 1
 }
 img {
-    width: 40%
+    width: 40%;
+    max-width: 200px;
+    height: auto;
+    display: none; /* Hidden by default, shown when loaded */
+    border-radius: 8px;
+    margin: 10px 0;
 }
 #avatar {
     height: 1.6rem;
@@ -71,33 +81,96 @@ img {
 
 </style>
 <script>
-import { supabase } from '../utils/supabaseBrowser'
+// Note: Profile updates and avatar operations now use server-side APIs to handle authentication properly
 const form = document.querySelector('form') as HTMLFormElement
 const avatarImg = document.querySelector('#avatar-image') as HTMLImageElement
 const avatarUrl = document.querySelector('#avatar_url') as HTMLInputElement
 const avatarInput = document.querySelector('#avatar')  as HTMLInputElement
+const avatarStatus = document.querySelector('#avatar-status') as HTMLDivElement
 
 form.addEventListener('submit', async (e) => {
     e.preventDefault()
 
-    const updates = Object.fromEntries(new FormData(e.target as HTMLFormElement).entries())
+    const formData = new FormData(e.target as HTMLFormElement);
+    const updates = {
+        username: formData.get('username'),
+        website: formData.get('website'),
+        avatar_url: formData.get('avatar_url'),
+    };
 
-    const res = await supabase.from('profiles').upsert(updates)
-    const {error} = res
+    try {
+        const response = await fetch('/api/profile', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(updates),
+        });
 
-    if (error) {
-        alert(`Error ${JSON.stringify(error, null, 2)}`)
+        const result = await response.json();
+
+        if (!response.ok) {
+            alert(`Error updating profile: ${result.error}`)
+        } else {
+            alert('Profile updated successfully!')
+        }
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        alert(`Error updating profile: ${errorMessage}`)
     }
-
 })
-
 const showImg = async (path: string) => {
-    const { data, error } = await supabase.storage.from('avatars').download(path)
-    if (error) {
-        alert(`Error ${JSON.stringify(error, null, 2)}`)
+    try {
+        avatarStatus.textContent = 'Loading avatar...'
+        avatarStatus.style.display = 'block'
+
+        const response = await fetch(`/api/avatar/url?path=${encodeURIComponent(path)}`)
+        const result = await response.json()
+
+        if (!response.ok) {
+            if (response.status === 503 && result.configured === false) {
+                // Supabase not configured - show helpful message
+                avatarStatus.textContent = 'Avatar storage not configured'
+                avatarStatus.style.color = '#ffa500' // Orange for warning
+                avatarImg.style.display = 'none'
+                return
+            }
+
+            avatarStatus.textContent = 'Failed to load avatar'
+            avatarStatus.style.color = '#ff6b6b'
+            return
+        }
+
+        if (result.success) {
+            console.log('Setting avatar image src to:', result.url)
+            console.log('URL type:', result.type)
+            avatarImg.src = result.url
+            avatarImg.style.display = 'block' // Make sure the image is visible
+
+            // Add load event listener to handle successful loading
+            avatarImg.onload = () => {
+                console.log('Avatar loaded successfully with', result.type, 'URL')
+                avatarStatus.style.display = 'none'
+            }
+
+            // Add error event listener to handle loading failures
+            avatarImg.onerror = (e) => {
+                console.error('Failed to load avatar image from', result.type, 'URL:', result.url)
+                console.error('Image error event:', e)
+                avatarImg.style.display = 'none'
+                avatarStatus.textContent = `Failed to load avatar (${result.type} URL)`
+                avatarStatus.style.color = '#ff6b6b'
+            }
+        } else {
+            console.error('Avatar URL API returned error:', result)
+            avatarStatus.textContent = 'Failed to get avatar URL: ' + (result.error || 'Unknown error')
+            avatarStatus.style.color = '#ff6b6b'
+        }
+    } catch (error) {
+        avatarImg.style.display = 'none'
+        avatarStatus.textContent = 'Error loading avatar'
+        avatarStatus.style.color = '#ff6b6b'
     }
-    const downloadUrl = URL.createObjectURL(data as Blob)
-    avatarImg.src = downloadUrl
 }
 // show image on start up if avatar_url is defined
 if (avatarUrl.value) {
@@ -110,18 +183,77 @@ avatarInput.addEventListener('change', async (e) => {
         alert('No file available')
         return
     }
-    const fileExt = file.name.split('.').pop()
-    const fileName = `${URL.createObjectURL(new Blob([])).slice(-36)}.${fileExt}`
-    let uploadRes = await supabase.storage.from('avatars').upload(fileName, file)
-    const { error, data } = uploadRes
-    if (error) {
-        alert(`Error ${JSON.stringify(error, null, 2)}`)
+
+    // Get the user ID from the hidden input field
+    const userId = (document.getElementById('id') as HTMLInputElement)?.value;
+    if (!userId) {
+        alert('Could not find user ID. Cannot upload avatar.');
+        return;
     }
-    if (data) {
-        const { path } = data
-        showImg(path)
-        avatarUrl.value = path
+
+    try {
+        // Create FormData for file upload
+        const formData = new FormData();
+        formData.append('avatar', file);
+
+        // Upload the new avatar
+        const uploadResponse = await fetch('/api/avatar/upload', {
+            method: 'POST',
+            body: formData,
+        });
+
+        const uploadResult = await uploadResponse.json();
+
+        if (!uploadResponse.ok) {
+            if (uploadResponse.status === 503) {
+                alert('Avatar upload not available - Supabase storage not configured')
+                return
+            }
+            alert(`Error uploading avatar: ${uploadResult.error}`)
+        } else if (uploadResult.success) {
+            const { path } = uploadResult
+
+            try {
+                // Update the profile in the database with the new avatar URL
+                const profileUpdateResponse = await fetch('/api/profile', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: (document.querySelector('#username') as HTMLInputElement)?.value || '',
+                        website: (document.querySelector('#website') as HTMLInputElement)?.value || '',
+                        avatar_url: path
+                    }),
+                });
+
+                if (!profileUpdateResponse.ok) {
+                    console.error('Failed to update profile with new avatar URL')
+                    avatarStatus.textContent = 'Avatar uploaded but profile update failed'
+                    avatarStatus.style.color = '#ff9800' // Orange warning
+                    avatarStatus.style.display = 'block'
+                    showImg(path) // Still show the avatar even if profile update failed
+                    return
+                }
+
+                // Success - update the client-side state
+                avatarUrl.value = path
+                avatarStatus.textContent = 'Avatar uploaded and saved successfully!'
+                avatarStatus.style.color = '#4caf50'
+                avatarStatus.style.display = 'block'
+                showImg(path)
+
+            } catch (profileError) {
+                console.error('Error updating profile:', profileError)
+                avatarStatus.textContent = 'Avatar uploaded but profile update failed'
+                avatarStatus.style.color = '#ff9800'
+                avatarStatus.style.display = 'block'
+                showImg(path) // Still show the avatar
+            }
+        }
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        alert(`Error uploading avatar: ${errorMessage}`)
     }
-    
 })
 </script>

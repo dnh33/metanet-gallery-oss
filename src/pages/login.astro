@@ -49,13 +49,15 @@ form!.addEventListener('submit', async (e) => {
     if (email) {
         try {
           submitBtn!.textContent = 'Loading'
-            const { error } = await supabase.auth.signInWithOtp({ 
+            const response = await supabase?.auth.signInWithOtp({
                 email,
                   options: {
-                    emailRedirectTo: appMailRedirects 
+                    emailRedirectTo: appMailRedirects
                   }
             })
-          if (error) throw error
+            if (!response || response.error) {
+                throw response?.error ?? new Error("Supabase client not configured.");
+            }
           alert('Check your email for the login link!')
         } catch (error) {
           if (error instanceof Error) {

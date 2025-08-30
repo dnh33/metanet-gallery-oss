@@ -18,10 +18,10 @@ create policy "Public profiles are viewable by everyone." on profiles
   for select using (true);
 
 create policy "Users can insert their own profile." on profiles
-  for insert with check ((select auth.uid()) = id);
+  for insert to authenticated with check (true);
 
 create policy "Users can update own profile." on profiles
-  for update using ((select auth.uid()) = id);
+  for update to authenticated using (auth.uid() = id) with check (auth.uid() = id);
 
 -- This trigger automatically creates a profile entry when a new user signs up via Supabase Auth.
 -- See https://supabase.com/docs/guides/auth/managing-user-data#using-triggers for more details.
@@ -45,11 +45,29 @@ insert into storage.buckets (id, name)
 
 -- Set up access controls for storage.
 -- See https://supabase.com/docs/guides/storage/security/access-control#policy-examples for more details.
+
+-- 1. Avatar images are publicly accessible.
 create policy "Avatar images are publicly accessible." on storage.objects
   for select using (bucket_id = 'avatars');
 
-create policy "Anyone can upload an avatar." on storage.objects
-  for insert with check (bucket_id = 'avatars');
+-- 2. Users can upload to their own folder.
+create policy "Users can upload to their own folder." on storage.objects
+  for insert with check (
+    bucket_id = 'avatars' AND
+    auth.uid() IS NOT NULL AND
+    (storage.foldername(name))[1] = auth.uid()::text
+  );
 
-create policy "Anyone can update their own avatar." on storage.objects
-  for update using ((select auth.uid()) = owner) with check (bucket_id = 'avatars');
+-- 3. Users can update their own avatars.
+create policy "Users can update their own avatars." on storage.objects
+  for update using (
+    auth.uid() IS NOT NULL AND
+    (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- 4. Users can delete their own avatars.
+create policy "Users can delete their own avatars." on storage.objects
+  for delete using (
+    auth.uid() IS NOT NULL AND
+    (storage.foldername(name))[1] = auth.uid()::text
+  );

@@ -1,4 +1,6 @@
 import { createClient } from "@supabase/supabase-js"
-import { supabaseUrl, supabaseAnonKey } from "./config"
+import { supabaseUrl, supabaseAnonKey, isSupabaseConfigured } from "./config"
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = isSupabaseConfigured
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null

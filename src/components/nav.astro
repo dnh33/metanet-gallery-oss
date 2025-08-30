@@ -67,9 +67,9 @@ import {supabase} from '../utils/supabaseBrowser'
 // we add the logout logic here
 
 const logoutAction = document.querySelector('.logout-action')
-if (logoutAction) {
+if (logoutAction && supabase) {
     logoutAction.addEventListener('click', () => {
-        supabase.auth.signOut()
+        supabase?.auth.signOut()
     })
 }
 </script>

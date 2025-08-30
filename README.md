@@ -1,8 +1,7 @@
 # Metanet Gallery OSS
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Discord](https://img.shields.io/discord/YOUR_DISCORD_INVITE_CODE?label=Join%20Community&logo=discord)](https://discord.gg/YOUR_DISCORD_INVITE_CODE)
-[![GitHub issues](https://img.shields.io/github/issues/YOUR_GITHUB_USERNAME/metanet-gallery-oss)](https://github.com/YOUR_GITHUB_USERNAME/metanet-gallery-oss/issues)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![GitHub issues](https://img.shields.io/github/issues/dnh3/metanet-gallery-oss)](https://github.com/dnh3/metanet-gallery-oss/issues)
 
 **A self-hostable, open-source 3D gallery designed for Bitcoiners to showcase and explore Ordinal art and inscriptions.**
 
@@ -67,7 +66,7 @@ To get a local copy up and running, follow these simple steps.
 
 1.  **Clone the repository:**
     ```sh
-    git clone https://github.com/YOUR_GITHUB_USERNAME/metanet-gallery-oss.git
+    git clone https://github.com/dnh3/metanet-gallery-oss.git
     cd metanet-gallery-oss
     ```
 
@@ -120,4 +119,4 @@ If you have a suggestion that would make this better, please fork the repo and c
 
 ## License
 
-Distributed under the MIT License. See `LICENSE` for more information.
+Distributed under the Apache License 2.0. See `LICENSE` for more information.
